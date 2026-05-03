@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tennis Charting</title>
 
 <style>
-body { font-family: system-ui, sans-serif; margin: 12px; }
-.section { border: 1px solid #ccc; padding: 10px; margin-bottom: 12px; border-radius: 6px; }
+body { font-family: system-ui, sans-serif; margin: 10px; }
+.section { border: 1px solid #ccc; margin-bottom: 12px; padding: 10px; border-radius: 6px; }
 .grid { display: flex; flex-wrap: wrap; gap: 6px; }
 button { padding: 10px; font-size: 14px; }
-.selected { background: #2e7d32; color: #fff; }
-.toggle-on { background: #1976d2; color: #fff; }
-.score { font-size: 18px; font-weight: bold; }
+.selected { background:#2e7d32; color:#fff; }
+.score { font-size:18px; font-weight:bold; }
 </style>
 </head>
 
@@ -37,18 +36,32 @@ button { padding: 10px; font-size: 14px; }
   <button onclick="selectGroup(this,'serve');setServe(2,false)">2nd Out</button>
 </div>
 
-<h2>🏁 Shot</h2>
+<h3>Serve Direction</h3>
+<div class="section grid serveDirGroup">
+  <button onclick="selectGroup(this,'serveDir');current.serveDirection='Wide'">Wide</button>
+  <button onclick="selectGroup(this,'serveDir');current.serveDirection='Body'">Body</button>
+  <button onclick="selectGroup(this,'serveDir');current.serveDirection='T'">T</button>
+</div>
+
+<h3>Serve Type</h3>
+<div class="section grid serveTypeGroup">
+  <button onclick="selectGroup(this,'serveType');current.serveType='Flat'">Flat</button>
+  <button onclick="selectGroup(this,'serveType');current.serveType='Slice'">Slice</button>
+  <button onclick="selectGroup(this,'serveType');current.serveType='Kick'">Kick</button>
+</div>
+
+<h2>🏁 Point Ending Shot</h2>
 <div class="section grid shotGroup">
-  <button onclick="selectGroup(this,'shot');shot('FH Winner')">FH Winner</button>
-  <button onclick="selectGroup(this,'shot');shot('FH Error')">FH Error</button>
-  <button onclick="selectGroup(this,'shot');shot('BH Winner')">BH Winner</button>
-  <button onclick="selectGroup(this,'shot');shot('BH Error')">BH Error</button>
+  <button onclick="selectGroup(this,'shot');current.shot='FH Winner'">FH Winner</button>
+  <button onclick="selectGroup(this,'shot');current.shot='FH Error'">FH Error</button>
+  <button onclick="selectGroup(this,'shot');current.shot='BH Winner'">BH Winner</button>
+  <button onclick="selectGroup(this,'shot');current.shot='BH Error'">BH Error</button>
 </div>
 
 <h2>👤 Point Winner</h2>
 <div class="section grid winnerGroup">
-  <button onclick="selectGroup(this,'winner');winner('player')">Player</button>
-  <button onclick="selectGroup(this,'winner');winner('opponent')">Opponent</button>
+  <button onclick="selectGroup(this,'winner');current.winner='player'">Player</button>
+  <button onclick="selectGroup(this,'winner');current.winner='opponent'">Opponent</button>
 </div>
 
 <div class="section score" id="scoreDisplay">0‑0 Games</div>
@@ -58,72 +71,54 @@ button { padding: 10px; font-size: 14px; }
 </div>
 
 <script>
-/* ================= STATE ================= */
-
 let current = {};
-let score = { points:[0,0], games:[0,0] };
-const tennisPoints = ['0','15','30','40','Ad'];
+let score = {points:[0,0],games:[0,0]};
+const pts=['0','15','30','40','Ad'];
 
-/* ================= UI HELPERS ================= */
-
-function selectGroup(btn, group) {
-  document.querySelectorAll(`.${group}Group button`)
-    .forEach(b => b.classList.remove('selected'));
+function selectGroup(btn,group){
+  document.querySelectorAll('.'+group+'Group button')
+    .forEach(b=>b.classList.remove('selected'));
   btn.classList.add('selected');
 }
 
-function setServe(n, inOut) { current.serve = { number:n, in:inOut }; }
-function shot(s) { current.shot = s; }
-function winner(w) { current.winner = w; }
+function setServe(n,inn){ current.serve={number:n,in:inn}; }
 
-/* ================= GOOGLE SHEETS ================= */
-/* 🔴 PASTE YOUR *LATEST REDEPLOYED* WEB APP URL BELOW */
+function submitPoint(){
+  if(!current.winner) return alert('Select winner');
 
-function sendToGoogleSheets(point) {
-  fetch('https://script.google.com/macros/s/AKfycbywKyH0kTIRrR3QKKbLXDHcbBAX-uAoxiBiKf8jA4iPSfY2k5Y_z-1dz6J_HDM9xbFw/exec', {
-    method: 'POST',
-    body: JSON.stringify({
-      ...point,
-      playerName: playerName.value,
-      opponentName: opponentName.value,
-      courtType: courtType.value,
-      weather: weather.value
-    })
-  })
-  .then(r => r.text())
-  .then(t => console.log('Sheets:', t))
-  .catch(err => console.error('Sheets error:', err));
-}
-
-/* ================= SCORING ================= */
-
-function submitPoint() {
-  if (!current.winner) {
-    alert('Select point winner');
-    return;
-  }
-
-  const p = current.winner === 'player' ? 0 : 1;
+  const p=current.winner==='player'?0:1;
   score.points[p]++;
 
-  if (
-    score.points[p] >= 4 &&
-    score.points[p] - score.points[1 - p] >= 2
-  ) {
-    score.games[p]++;
-    score.points = [0, 0];
+  if(score.points[p]>=4 && score.points[p]-score.points[1-p]>=2){
+    score.games[p]++; score.points=[0,0];
   }
 
-  current.timestamp = new Date().toISOString();
-  sendToGoogleSheets(current);
-  current = {};
-
+  current.timestamp=new Date().toISOString();
+  sendToSheets(current);
+  current={};
   updateScore();
 }
 
-function updateScore() {
-  scoreDisplay.innerText =
-    `Points ${tennisPoints[score.points[0]]}-${tennisPoints[score.points[1]]} | Games ${score.games[0]}-${score.games[1]}`;
+function updateScore(){
+  scoreDisplay.innerText=
+   `Points ${pts[score.points[0]]}-${pts[score.points[1]]} | Games ${score.games[0]}-${score.games[1]}`;
+}
+
+/* ✅ NO Content-Type header = NO CORS preflight */
+function sendToSheets(point){
+  fetch('PASTE_YOUR_WEB_APP_URL_HERE',{
+    method:'POST',
+    body:JSON.stringify({
+      ...point,
+      playerName:playerName.value,
+      opponentName:opponentName.value,
+      courtType:courtType.value,
+      weather:weather.value
+    })
+  })
+  .then(r=>r.text())
+  .then(t=>console.log('Sheets:',t))
+  .catch(e=>console.error('Sheets error',e));
 }
 </script>
 
