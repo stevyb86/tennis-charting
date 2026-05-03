@@ -11,6 +11,7 @@ body { font-family: system-ui, sans-serif; margin: 10px; }
 .grid { display: flex; flex-wrap: wrap; gap: 6px; }
 button { padding: 10px; font-size: 14px; }
 .selected { background:#2e7d32; color:#fff; }
+.toggle-on { background:#1976d2; color:#fff; }
 .score { font-size:18px; font-weight:bold; }
 </style>
 </head>
@@ -28,6 +29,14 @@ button { padding: 10px; font-size: 14px; }
   <input id="weather" placeholder="Weather">
 </div>
 
+<h2>⚙️ Tracking Options</h2>
+<div class="section grid">
+  <button onclick="toggle('serveDir',this)">Serve Direction</button>
+  <button onclick="toggle('serveType',this)">Serve Type</button>
+  <button onclick="toggle('forced',this)">Forced / Unforced</button>
+  <button onclick="toggle('rally',this)">Rally Length</button>
+</div>
+
 <h2>🎯 Serve</h2>
 <div class="section grid serveGroup">
   <button onclick="selectGroup(this,'serve');setServe(1,true)">1st In</button>
@@ -36,19 +45,7 @@ button { padding: 10px; font-size: 14px; }
   <button onclick="selectGroup(this,'serve');setServe(2,false)">2nd Out</button>
 </div>
 
-<h3>Serve Direction</h3>
-<div class="section grid serveDirGroup">
-  <button onclick="selectGroup(this,'serveDir');current.serveDirection='Wide'">Wide</button>
-  <button onclick="selectGroup(this,'serveDir');current.serveDirection='Body'">Body</button>
-  <button onclick="selectGroup(this,'serveDir');current.serveDirection='T'">T</button>
-</div>
-
-<h3>Serve Type</h3>
-<div class="section grid serveTypeGroup">
-  <button onclick="selectGroup(this,'serveType');current.serveType='Flat'">Flat</button>
-  <button onclick="selectGroup(this,'serveType');current.serveType='Slice'">Slice</button>
-  <button onclick="selectGroup(this,'serveType');current.serveType='Kick'">Kick</button>
-</div>
+<div class="section" id="conditional"></div>
 
 <h2>🏁 Point Ending Shot</h2>
 <div class="section grid shotGroup">
@@ -71,9 +68,25 @@ button { padding: 10px; font-size: 14px; }
 </div>
 
 <script>
+/* ---------- STATE ---------- */
 let current = {};
+let points = [];
 let score = {points:[0,0],games:[0,0]};
 const pts=['0','15','30','40','Ad'];
+
+let config = {
+  serveDir:false,
+  serveType:false,
+  forced:false,
+  rally:false
+};
+
+/* ---------- UI HELPERS ---------- */
+function toggle(k,btn){
+  config[k]=!config[k];
+  btn.classList.toggle('toggle-on');
+  renderConditional();
+}
 
 function selectGroup(btn,group){
   document.querySelectorAll('.'+group+'Group button')
@@ -81,6 +94,52 @@ function selectGroup(btn,group){
   btn.classList.add('selected');
 }
 
+/* ---------- CONDITIONAL UI ---------- */
+function renderConditional(){
+  const c=document.getElementById('conditional');
+  c.innerHTML='';
+
+  if(config.serveDir){
+    c.innerHTML+=`
+    <h3>Serve Direction</h3>
+    <div class="grid serveDirGroup">
+      <button onclick="selectGroup(this,'serveDir');current.serveDirection='Wide'">Wide</button>
+      <button onclick="selectGroup(this,'serveDir');current.serveDirection='Body'">Body</button>
+      <button onclick="selectGroup(this,'serveDir');current.serveDirection='T'">T</button>
+    </div>`;
+  }
+
+  if(config.serveType){
+    c.innerHTML+=`
+    <h3>Serve Type</h3>
+    <div class="grid serveTypeGroup">
+      <button onclick="selectGroup(this,'serveType');current.serveType='Flat'">Flat</button>
+      <button onclick="selectGroup(this,'serveType');current.serveType='Slice'">Slice</button>
+      <button onclick="selectGroup(this,'serveType');current.serveType='Kick'">Kick</button>
+    </div>`;
+  }
+
+  if(config.forced){
+    c.innerHTML+=`
+    <h3>Error Type</h3>
+    <div class="grid forcedGroup">
+      <button onclick="selectGroup(this,'forced');current.forced='Forced'">Forced</button>
+      <button onclick="selectGroup(this,'forced');current.forced='Unforced'">Unforced</button>
+    </div>`;
+  }
+
+  if(config.rally){
+    c.innerHTML+=`
+    <h3>Rally Length</h3>
+    <div class="grid rallyGroup">
+      <button onclick="selectGroup(this,'rally');current.rally='0-2'">0–2</button>
+      <button onclick="selectGroup(this,'rally');current.rally='3-6'">3–6</button>
+      <button onclick="selectGroup(this,'rally');current.rally='7+'">7+</button>
+    </div>`;
+  }
+}
+
+/* ---------- POINT LOGIC ---------- */
 function setServe(n,inn){ current.serve={number:n,in:inn}; }
 
 function submitPoint(){
@@ -104,7 +163,7 @@ function updateScore(){
    `Points ${pts[score.points[0]]}-${pts[score.points[1]]} | Games ${score.games[0]}-${score.games[1]}`;
 }
 
-/* ✅ NO Content-Type header = NO CORS preflight */
+/* ✅ Google Apps Script safe: NO Content-Type */
 function sendToSheets(point){
   fetch('PASTE_YOUR_WEB_APP_URL_HERE',{
     method:'POST',
@@ -115,10 +174,7 @@ function sendToSheets(point){
       courtType:courtType.value,
       weather:weather.value
     })
-  })
-  .then(r=>r.text())
-  .then(t=>console.log('Sheets:',t))
-  .catch(e=>console.error('Sheets error',e));
+  }).then(r=>r.text()).then(console.log).catch(console.error);
 }
 </script>
 
