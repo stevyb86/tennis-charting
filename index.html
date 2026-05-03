@@ -7,7 +7,7 @@
 
 <style>
 body { font-family: system-ui, sans-serif; margin: 10px; }
-.section { border: 1px solid #ccc; margin-bottom: 12px; padding: 10px; border-radius: 6px; }
+.section { border: 1px solid #ccc; padding: 10px; margin-bottom: 12px; border-radius: 6px; }
 .grid { display: flex; flex-wrap: wrap; gap: 6px; }
 button { padding: 10px; font-size: 14px; }
 .selected { background:#2e7d32; color:#fff; }
@@ -37,6 +37,12 @@ button { padding: 10px; font-size: 14px; }
   <button onclick="toggle('rally',this)">Rally Length</button>
 </div>
 
+<h2>🎯 Server</h2>
+<div class="section grid serverGroup">
+  <button onclick="selectGroup(this,'server');current.server='player'">Player Serving</button>
+  <button onclick="selectGroup(this,'server');current.server='opponent'">Opponent Serving</button>
+</div>
+
 <h2>🎯 Serve</h2>
 <div class="section grid serveGroup">
   <button onclick="selectGroup(this,'serve');setServe(1,true)">1st In</button>
@@ -53,6 +59,15 @@ button { padding: 10px; font-size: 14px; }
   <button onclick="selectGroup(this,'shot');current.shot='FH Error'">FH Error</button>
   <button onclick="selectGroup(this,'shot');current.shot='BH Winner'">BH Winner</button>
   <button onclick="selectGroup(this,'shot');current.shot='BH Error'">BH Error</button>
+  <button onclick="selectGroup(this,'shot');current.shot='FH Volley'">FH Volley</button>
+  <button onclick="selectGroup(this,'shot');current.shot='BH Volley'">BH Volley</button>
+  <button onclick="selectGroup(this,'shot');current.shot='Overhead'">Overhead</button>
+</div>
+
+<h2>🎯 Break Point</h2>
+<div class="section grid breakGroup">
+  <button onclick="selectGroup(this,'break');current.breakPoint=true">Break Point</button>
+  <button onclick="selectGroup(this,'break');current.breakPoint=false">Not Break Point</button>
 </div>
 
 <h2>👤 Point Winner</h2>
@@ -61,40 +76,34 @@ button { padding: 10px; font-size: 14px; }
   <button onclick="selectGroup(this,'winner');current.winner='opponent'">Opponent</button>
 </div>
 
-<div class="section score" id="scoreDisplay">0‑0 Games</div>
+<div class="section score" id="scoreDisplay"></div>
 
 <div class="section">
   <button onclick="submitPoint()">Submit Point</button>
 </div>
 
 <script>
-/* ---------- STATE ---------- */
+/* ---------- MATCH STATE ---------- */
+const matchId = `MATCH_${new Date().toISOString().slice(0,10)}_${Math.floor(Math.random()*10000)}`;
+let setNumber = 1;
+let isTiebreak = false;
+
 let current = {};
-let points = [];
 let score = {points:[0,0],games:[0,0]};
 const pts=['0','15','30','40','Ad'];
 
-let config = {
-  serveDir:false,
-  serveType:false,
-  forced:false,
-  rally:false
-};
+let config = { serveDir:false, serveType:false, forced:false, rally:false };
 
-/* ---------- UI HELPERS ---------- */
-function toggle(k,btn){
-  config[k]=!config[k];
-  btn.classList.toggle('toggle-on');
-  renderConditional();
-}
+/* ---------- UI ---------- */
+function toggle(k,btn){ config[k]=!config[k]; btn.classList.toggle('toggle-on'); renderConditional(); }
 
 function selectGroup(btn,group){
-  document.querySelectorAll('.'+group+'Group button')
+  document.querySelectorAll(`.${group}Group button`)
     .forEach(b=>b.classList.remove('selected'));
   btn.classList.add('selected');
 }
 
-/* ---------- CONDITIONAL UI ---------- */
+/* ---------- CONDITIONAL ---------- */
 function renderConditional(){
   const c=document.getElementById('conditional');
   c.innerHTML='';
@@ -139,15 +148,20 @@ function renderConditional(){
   }
 }
 
-/* ---------- POINT LOGIC ---------- */
+/* ---------- LOGIC ---------- */
 function setServe(n,inn){ current.serve={number:n,in:inn}; }
+function getServeSide(){ return (score.points[0]+score.points[1])%2===0?'Deuce':'Ad'; }
 
 function submitPoint(){
-  if(!current.winner) return alert('Select winner');
+  if(!current.winner || !current.server) return alert('Select winner & server');
+
+  current.matchId = matchId;
+  current.setNumber = setNumber;
+  current.isTiebreak = isTiebreak;
+  current.serveSide = getServeSide();
 
   const p=current.winner==='player'?0:1;
   score.points[p]++;
-
   if(score.points[p]>=4 && score.points[p]-score.points[1-p]>=2){
     score.games[p]++; score.points=[0,0];
   }
@@ -160,10 +174,10 @@ function submitPoint(){
 
 function updateScore(){
   scoreDisplay.innerText=
-   `Points ${pts[score.points[0]]}-${pts[score.points[1]]} | Games ${score.games[0]}-${score.games[1]}`;
+    `Points ${pts[score.points[0]]}-${pts[score.points[1]]} | Games ${score.games[0]}-${score.games[1]}`;
 }
 
-/* ✅ Google Apps Script safe: NO Content-Type */
+/* ✅ SAFE G‑Apps fetch (no preflight) */
 function sendToSheets(point){
   fetch('https://script.google.com/macros/s/AKfycbywKyH0kTIRrR3QKKbLXDHcbBAX-uAoxiBiKf8jA4iPSfY2k5Y_z-1dz6J_HDM9xbFw/exec',{
     method:'POST',
@@ -174,7 +188,7 @@ function sendToSheets(point){
       courtType:courtType.value,
       weather:weather.value
     })
-  }).then(r=>r.text()).then(console.log).catch(console.error);
+  });
 }
 </script>
 
