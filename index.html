@@ -7,12 +7,19 @@
 
 <style>
 body { font-family: system-ui, sans-serif; margin: 10px; }
-.section { border: 1px solid #ccc; padding: 10px; margin-bottom: 12px; border-radius: 6px; }
+.section { border: 1px solid #ccc; border-radius: 6px; padding: 10px; margin-bottom: 12px; }
 .grid { display: flex; flex-wrap: wrap; gap: 6px; }
-button { padding: 10px; font-size: 14px; }
-.selected { background:#2e7d32; color:#fff; }
-.toggle-on { background:#1976d2; color:#fff; }
-.score { font-size:18px; font-weight:bold; }
+button { padding: 8px 10px; font-size: 14px; }
+button:disabled { opacity: 0.4; }
+
+.selected { background: #2e7d32; color: #fff; }
+.error-selected { background: #c62828; color: #fff; }
+.toggle-on { background: #1976d2; color: #fff; }
+.hidden { display: none; }
+
+.score { font-size: 18px; font-weight: bold; }
+.subhead { font-weight: bold; margin-bottom: 6px; }
+.shot-list button { font-size: 12px; padding: 6px 8px; }
 </style>
 </head>
 
@@ -21,175 +28,364 @@ button { padding: 10px; font-size: 14px; }
 <h2>🎾 Match Setup</h2>
 <div class="section">
   <input id="playerName" placeholder="Player Name"><br>
+  <input id="partnerName" placeholder="Partner Name" class="hidden"><br>
   <input id="opponentName" placeholder="Opponent Name"><br>
-  <select id="courtType">
-    <option>Hard</option><option>Clay</option><option>Grass</option>
-    <option>Indoor</option><option>Other</option>
-  </select><br>
-  <input id="weather" placeholder="Weather">
-</div>
-
-<h2>⚙️ Tracking Options</h2>
-<div class="section grid">
-  <button onclick="toggle('serveDir',this)">Serve Direction</button>
-  <button onclick="toggle('serveType',this)">Serve Type</button>
-  <button onclick="toggle('forced',this)">Forced / Unforced</button>
-  <button onclick="toggle('rally',this)">Rally Length</button>
+  <input id="opponentPartnerName" placeholder="Opponent Partner Name" class="hidden"><br>
+  <input id="weather" placeholder="Weather / Conditions"><br>
+  <button onclick="toggleDoubles(this)">Singles</button><br><br>
+  Match ID: <strong><span id="matchId">—</span></strong>
 </div>
 
 <h2>🎯 Server</h2>
 <div class="section grid serverGroup">
-  <button onclick="selectGroup(this,'server');current.server='player'">Player Serving</button>
-  <button onclick="selectGroup(this,'server');current.server='opponent'">Opponent Serving</button>
+  <button onclick="setServer('player',this)">Player</button>
+  <button onclick="setServer('partner',this)" class="partnerOnly hidden">Partner</button>
+  <button onclick="setServer('opponent',this)">Opponent</button>
+  <button onclick="setServer('oppPartner',this)" class="partnerOnly hidden">Opp Partner</button>
 </div>
 
 <h2>🎯 Serve</h2>
 <div class="section grid serveGroup">
-  <button onclick="selectGroup(this,'serve');setServe(1,true)">1st In</button>
-  <button onclick="selectGroup(this,'serve');setServe(1,false)">1st Out</button>
-  <button onclick="selectGroup(this,'serve');setServe(2,true)">2nd In</button>
-  <button onclick="selectGroup(this,'serve');setServe(2,false)">2nd Out</button>
+  <button onclick="setServe(1,true,this)">1st Serve In</button>
+  <button onclick="setServe(2,true,this)">2nd Serve In</button>
+  <button onclick="setServe(2,false,this)">2nd Serve Out</button>
 </div>
 
-<div class="section" id="conditional"></div>
+<h2>🏁 Point Ending</h2>
+<div class="section">
+  <div class="subhead">Result</div>
+  <div class="grid shotTypeGroup">
+    <button onclick="setShotType('Winner',this)">Winner</button>
+    <button onclick="setShotType('Error',this)">Error</button>
+  </div>
 
-<h2>🏁 Point Ending Shot</h2>
-<div class="section grid shotGroup">
-  <button onclick="selectGroup(this,'shot');current.shot='FH Winner'">FH Winner</button>
-  <button onclick="selectGroup(this,'shot');current.shot='FH Error'">FH Error</button>
-  <button onclick="selectGroup(this,'shot');current.shot='BH Winner'">BH Winner</button>
-  <button onclick="selectGroup(this,'shot');current.shot='BH Error'">BH Error</button>
-  <button onclick="selectGroup(this,'shot');current.shot='FH Volley'">FH Volley</button>
-  <button onclick="selectGroup(this,'shot');current.shot='BH Volley'">BH Volley</button>
-  <button onclick="selectGroup(this,'shot');current.shot='Overhead'">Overhead</button>
-</div>
-
-<h2>🎯 Break Point</h2>
-<div class="section grid breakGroup">
-  <button onclick="selectGroup(this,'break');current.breakPoint=true">Break Point</button>
-  <button onclick="selectGroup(this,'break');current.breakPoint=false">Not Break Point</button>
+  <div class="subhead" style="margin-top:8px">Shot</div>
+  <div class="grid shotGroup shot-list">
+    <button onclick="setShot('Forehand',this)">Forehand</button>
+    <button onclick="setShot('Backhand',this)">Backhand</button>
+    <button onclick="setShot('Forehand Volley',this)">FH Volley</button>
+    <button onclick="setShot('Backhand Volley',this)">BH Volley</button>
+    <button onclick="setShot('Overhead',this)">Overhead</button>
+    <button onclick="setShot('Drop Shot',this)">Drop Shot</button>
+    <button onclick="setShot('Lob',this)">Lob</button>
+  </div>
 </div>
 
 <h2>👤 Point Winner</h2>
 <div class="section grid winnerGroup">
-  <button onclick="selectGroup(this,'winner');current.winner='player'">Player</button>
-  <button onclick="selectGroup(this,'winner');current.winner='opponent'">Opponent</button>
+  <button onclick="setWinner('player',this)">Player Team</button>
+  <button onclick="setWinner('opponent',this)">Opponent Team</button>
+</div>
+
+<h2>⚙️ Tracking Toggles</h2>
+<div class="section grid">
+  <button onclick="toggleSection('serveDir',this)">Serve Direction</button>
+  <button onclick="toggleSection('serveType',this)">Serve Type</button>
+  <button onclick="toggleSection('forced',this)">Forced / Unforced</button>
+  <button onclick="toggleSection('rally',this)">Rally Length</button>
+  <button onclick="toggleNoAd(this)">No‑Ad</button>
+</div>
+
+<div id="serveDir" class="section hidden">
+  <div class="subhead">Serve Direction</div>
+  <div class="grid">
+    <button onclick="selectSimple(this,'serveDir','Wide')">Wide</button>
+    <button onclick="selectSimple(this,'serveDir','Body')">Body</button>
+    <button onclick="selectSimple(this,'serveDir','T')">T</button>
+  </div>
+</div>
+
+<div id="serveType" class="section hidden">
+  <div class="subhead">Serve Type</div>
+  <div class="grid">
+    <button onclick="selectSimple(this,'serveType','Flat')">Flat</button>
+    <button onclick="selectSimple(this,'serveType','Slice')">Slice</button>
+    <button onclick="selectSimple(this,'serveType','Kick')">Kick</button>
+  </div>
+</div>
+
+<div id="forced" class="section hidden">
+  <div class="subhead">Error Type</div>
+  <div class="grid">
+    <button onclick="selectSimple(this,'forced','Forced')">Forced</button>
+    <button onclick="selectSimple(this,'forced','Unforced')">Unforced</button>
+  </div>
+</div>
+
+<div id="rally" class="section hidden">
+  <div class="subhead">Rally Length</div>
+  <div class="grid">
+    <button onclick="selectSimple(this,'rally','0-2')">0–2</button>
+    <button onclick="selectSimple(this,'rally','3-6')">3–6</button>
+    <button onclick="selectSimple(this,'rally','7+')">7+</button>
+  </div>
+</div>
+
+<h2>⏪ Corrections</h2>
+<div class="section grid">
+  <button onclick="submitMissed()">Missed Point</button>
+  <button onclick="undoLast()">Undo Last Point</button>
+</div>
+
+<h2>🛠 Manual Game Adjust</h2>
+<div class="section grid">
+  <button onclick="adjustGame(0,1)">Player +Game</button>
+  <button onclick="adjustGame(0,-1)">Player −Game</button>
+  <button onclick="adjustGame(1,1)">Opponent +Game</button>
+  <button onclick="adjustGame(1,-1)">Opponent −Game</button>
 </div>
 
 <div class="section score" id="scoreDisplay"></div>
 
 <div class="section">
-  <button onclick="submitPoint()">Submit Point</button>
+  <button id="submitBtn" onclick="submitPoint()" disabled>Submit Point</button>
 </div>
 
 <script>
-/* ---------- MATCH STATE ---------- */
-const matchId = `MATCH_${new Date().toISOString().slice(0,10)}_${Math.floor(Math.random()*10000)}`;
-let setNumber = 1;
-let isTiebreak = false;
+/* ================= STATE ================= */
+let score={points:[0,0],games:[0,0]};
+let sets=[0,0];
+let isTiebreak=false;
+let isSuperTB=false;
+let tbPoints=0;
+let tbFirstServer=null;
+let history=[];
+let current={};
+let isDoubles=false;
+const pts=['0','15','30','40'];
 
-let current = {};
-let score = {points:[0,0],games:[0,0]};
-const pts=['0','15','30','40','Ad'];
+/* Match ID */
+playerName.addEventListener('input',()=>{
+  const name=playerName.value.trim()||'Player';
+  matchId.textContent=name+'_'+new Date().toISOString().slice(0,10);
+});
 
-let config = { serveDir:false, serveType:false, forced:false, rally:false };
+/* Doubles toggle */
+function toggleDoubles(btn){
+  isDoubles=!isDoubles;
+  btn.textContent=isDoubles?'Doubles':'Singles';
+  document.querySelectorAll('.partnerOnly').forEach(b=>b.classList.toggle('hidden',!isDoubles));
+  partnerName.classList.toggle('hidden',!isDoubles);
+  opponentPartnerName.classList.toggle('hidden',!isDoubles);
+}
 
-/* ---------- UI ---------- */
-function toggle(k,btn){ config[k]=!config[k]; btn.classList.toggle('toggle-on'); renderConditional(); }
+/* Helpers */
+function clearGroup(group){ group.forEach(b=>b.classList.remove('selected','error-selected')); }
+function toggleSection(id,btn){
+  document.getElementById(id).classList.toggle('hidden');
+  btn.classList.toggle('toggle-on');
+}
+function toggleNoAd(btn){
+  current.noAd=!current.noAd;
+  btn.classList.toggle('selected',current.noAd);
+}
 
-function selectGroup(btn,group){
-  document.querySelectorAll(`.${group}Group button`)
-    .forEach(b=>b.classList.remove('selected'));
+/* Selection handlers */
+function setServer(v,btn){
+  clearGroup([...btn.parentNode.children]);
   btn.classList.add('selected');
+  current.serverPerson=v;
+  current.serverTeam=(v==='player'||v==='partner')?'player':'opponent';
+  if((isTiebreak||isSuperTB)&&tbFirstServer===null){
+    tbFirstServer=current.serverTeam;
+  }
+  validate();
+}
+function setServe(n,inServe,btn){
+  clearGroup([...btn.parentNode.children]);
+  btn.classList.add('selected');
+  current.serveNum=n; current.serveIn=inServe;
+  validate();
+}
+function setShotType(v,btn){
+  clearGroup([...btn.parentNode.children]);
+  btn.classList.add(v==='Error'?'error-selected':'selected');
+  current.shotType=v; validate();
+}
+function setShot(v,btn){
+  clearGroup([...btn.parentNode.children]);
+  btn.classList.add('selected');
+  current.shot=v; validate();
+}
+function setWinner(v,btn){
+  clearGroup([...btn.parentNode.children]);
+  btn.classList.add('selected');
+  current.winnerTeam=v; validate();
+}
+function selectSimple(btn,key,val){
+  clearGroup([...btn.parentNode.children]);
+  btn.classList.add('selected');
+  current[key]=val;
 }
 
-/* ---------- CONDITIONAL ---------- */
-function renderConditional(){
-  const c=document.getElementById('conditional');
-  c.innerHTML='';
-
-  if(config.serveDir){
-    c.innerHTML+=`
-    <h3>Serve Direction</h3>
-    <div class="grid serveDirGroup">
-      <button onclick="selectGroup(this,'serveDir');current.serveDirection='Wide'">Wide</button>
-      <button onclick="selectGroup(this,'serveDir');current.serveDirection='Body'">Body</button>
-      <button onclick="selectGroup(this,'serveDir');current.serveDirection='T'">T</button>
-    </div>`;
-  }
-
-  if(config.serveType){
-    c.innerHTML+=`
-    <h3>Serve Type</h3>
-    <div class="grid serveTypeGroup">
-      <button onclick="selectGroup(this,'serveType');current.serveType='Flat'">Flat</button>
-      <button onclick="selectGroup(this,'serveType');current.serveType='Slice'">Slice</button>
-      <button onclick="selectGroup(this,'serveType');current.serveType='Kick'">Kick</button>
-    </div>`;
-  }
-
-  if(config.forced){
-    c.innerHTML+=`
-    <h3>Error Type</h3>
-    <div class="grid forcedGroup">
-      <button onclick="selectGroup(this,'forced');current.forced='Forced'">Forced</button>
-      <button onclick="selectGroup(this,'forced');current.forced='Unforced'">Unforced</button>
-    </div>`;
-  }
-
-  if(config.rally){
-    c.innerHTML+=`
-    <h3>Rally Length</h3>
-    <div class="grid rallyGroup">
-      <button onclick="selectGroup(this,'rally');current.rally='0-2'">0–2</button>
-      <button onclick="selectGroup(this,'rally');current.rally='3-6'">3–6</button>
-      <button onclick="selectGroup(this,'rally');current.rally='7+'">7+</button>
-    </div>`;
-  }
+/* Validation */
+function validate(){
+  submitBtn.disabled=!(
+    (current.serverPerson&&current.serveNum)||
+    (current.shot&&current.shotType&&current.winnerTeam)
+  );
 }
 
-/* ---------- LOGIC ---------- */
-function setServe(n,inn){ current.serve={number:n,in:inn}; }
-function getServeSide(){ return (score.points[0]+score.points[1])%2===0?'Deuce':'Ad'; }
+/* Tiebreak server */
+function getTiebreakServerTeam(){
+  if(!isTiebreak&&!isSuperTB) return current.serverTeam;
+  if(tbPoints===0) return tbFirstServer;
+  const block=Math.floor((tbPoints-1)/2);
+  return block%2===0?(tbFirstServer==='player'?'opponent':'player'):tbFirstServer;
+}
 
-function submitPoint(){
-  if(!current.winner || !current.server) return alert('Select winner & server');
-
-  current.matchId = matchId;
-  current.setNumber = setNumber;
-  current.isTiebreak = isTiebreak;
-  current.serveSide = getServeSide();
-
-  const p=current.winner==='player'?0:1;
-  score.points[p]++;
-  if(score.points[p]>=4 && score.points[p]-score.points[1-p]>=2){
-    score.games[p]++; score.points=[0,0];
-  }
-
-  current.timestamp=new Date().toISOString();
-  sendToSheets(current);
-  current={};
+/* Save / undo */
+function save(){ history.push(JSON.stringify({score,sets,isTiebreak,isSuperTB,tbPoints,tbFirstServer})); }
+function undoLast(){
+  if(!history.length)return;
+  const p=history.pop();
+  score=p.score; sets=p.sets; isTiebreak=p.isTiebreak;
+  isSuperTB=p.isSuperTB; tbPoints=p.tbPoints; tbFirstServer=p.tbFirstServer;
   updateScore();
 }
 
-function updateScore(){
-  scoreDisplay.innerText=
-    `Points ${pts[score.points[0]]}-${pts[score.points[1]]} | Games ${score.games[0]}-${score.games[1]}`;
+/* Manual game adjust (FIXED) */
+function adjustGame(p,d){
+  score.games[p]=Math.max(0,score.games[p]+d);
+  checkSet();
+  updateScore();
 }
 
-/* ✅ SAFE G‑Apps fetch (no preflight) */
-function sendToSheets(point){
-  fetch('https://script.google.com/macros/s/AKfycbywKyH0kTIRrR3QKKbLXDHcbBAX-uAoxiBiKf8jA4iPSfY2k5Y_z-1dz6J_HDM9xbFw/exec',{
-    method:'POST',
-    body:JSON.stringify({
-      ...point,
-      playerName:playerName.value,
-      opponentName:opponentName.value,
-      courtType:courtType.value,
-      weather:weather.value
-    })
-  });
+/* Set logic */
+function checkSet(){
+  const [pg,og]=score.games;
+  if(!isTiebreak&&!isSuperTB){
+    if(pg>=6&&pg-og>=2){ endSet(0); return; }
+    if(og>=6&&og-pg>=2){ endSet(1); return; }
+    if(pg===6&&og===6){
+      isTiebreak=true;
+      tbPoints=0;
+      tbFirstServer=current.serverTeam||tbFirstServer;
+    }
+  }
+  if(isTiebreak){
+    if(pg===7) endSet(0);
+    if(og===7) endSet(1);
+  }
 }
+function endSet(winner){
+  sets[winner]++;
+  score.games=[0,0];
+  score.points=[0,0];
+  isTiebreak=false;
+  tbPoints=0;
+  tbFirstServer=null;
+  if(sets[0]===1&&sets[1]===1) isSuperTB=true;
+}
+
+/* Submit point */
+function submitPoint(){
+  save();
+  let team;
+  const tbServer=getTiebreakServerTeam();
+
+  if(!current.shot){
+    team=current.serveIn?tbServer:(tbServer==='player'?'opponent':'player');
+  }else{
+    team=current.winnerTeam;
+  }
+
+  if(isSuperTB){
+    score.points[team==='player'?0:1]++;
+    tbPoints++;
+    if(Math.abs(score.points[0]-score.points[1])>=2 &&
+       (score.points[0]>=10||score.points[1]>=10)){
+      sets[team==='player'?0:1]++;
+      score.points=[0,0];
+      isSuperTB=false;
+      tbPoints=0;
+    }
+  }else{
+    score.points[team==='player'?0:1]++;
+    if(score.points[team==='player'?0:1]>=4){
+      score.games[team==='player'?0:1]++;
+      score.points=[0,0];
+      checkSet();
+    }
+    if(isTiebreak) tbPoints++;
+  }
+fetch("https://script.google.com/macros/s/AKfycby8fyY_UmULtGUTuMQMVSKxcSekQf1TGQr3ntltz10O2pYLY_mFa8CBYCBME0RUo-xP/exec", {
+  method: "POST",
+  contentType: "application/json",
+  body: JSON.stringify({
+    matchId: matchId.textContent,
+    isDoubles: isDoubles,
+
+    player: playerName.value,
+    partner: isDoubles ? partnerName.value : "",
+    opponent: opponentName.value,
+    opponentPartner: isDoubles ? opponentPartnerName.value : "",
+    weather: weather.value,
+
+    serverPerson: current.serverPerson || "",
+    serverTeam: current.serverTeam || "",
+    winnerTeam: team,
+
+    serveNum: current.serveNum || "",
+    serveIn: current.serveIn ?? "",
+
+    shot: current.shot || "Serve",
+    shotType: current.shotType || "",
+    shotResult: (!current.shot && !current.serveIn)
+      ? "Double Fault"
+      : (!current.shot && current.serveIn ? "Service Winner" : ""),
+
+    serveDir: current.serveDir || "",
+    serveType: current.serveType || "",
+    forced: current.forced || "",
+    rally: current.rally || "",
+    noAd: current.noAd || false
+  })
+});
+  resetPointSelections();
+  updateScore();
+}
+
+/* Missed point */
+function submitMissed(){
+  if(!current.winnerTeam) return;
+  save();
+  const team=current.winnerTeam;
+  if(isSuperTB){
+    score.points[team==='player'?0:1]++;
+    tbPoints++;
+  }else{
+    score.points[team==='player'?0:1]++;
+    if(score.points[team==='player'?0:1]>=4){
+      score.games[team==='player'?0:1]++;
+      score.points=[0,0];
+      checkSet();
+    }
+    if(isTiebreak) tbPoints++;
+  }
+  resetPointSelections();
+  updateScore();
+}
+
+/* Reset per point */
+function resetPointSelections(){
+  document.querySelectorAll(
+    '.serverGroup button,.serveGroup button,.shotGroup button,.shotTypeGroup button,.winnerGroup button'
+  ).forEach(b=>b.classList.remove('selected','error-selected'));
+  ['serverPerson','serverTeam','serveNum','serveIn','shot','shotType','winnerTeam',
+   'serveDir','serveType','forced','rally'].forEach(k=>delete current[k]);
+  document.querySelectorAll('#serveDir button,#serveType button,#forced button,#rally button')
+    .forEach(b=>b.classList.remove('selected'));
+}
+
+/* Display */
+function updateScore(){
+  let text=`Sets ${sets[0]}–${sets[1]} | Games ${score.games[0]}–${score.games[1]}`;
+  if(isSuperTB) text+=` | Super TB ${score.points[0]}–${score.points[1]}`;
+  else text+=` | Points ${pts[score.points[0]]}–${pts[score.points[1]]}`;
+  scoreDisplay.textContent=text;
+}
+updateScore();
 </script>
 
 </body>
