@@ -220,11 +220,20 @@ function selectSimple(btn,key,val){
 
 /* Validation */
 function validate(){
-  submitBtn.disabled=!(
-    (current.serverPerson&&current.serveNum)||
-    (current.shot&&current.shotType&&current.winnerTeam)
-  );
+  const serveComplete =
+    current.serverPerson &&
+    current.serveNum &&
+    current.serveDir &&
+    current.serveType;
+
+  const rallyComplete =
+    current.shot &&
+    current.shotType &&
+    current.winnerTeam;
+
+  submitBtn.disabled = !(serveComplete || rallyComplete);
 }
+
 
 /* Tiebreak server */
 function getTiebreakServerTeam(){
