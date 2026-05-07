@@ -367,6 +367,7 @@ const payload = {
 
 fetch("https://script.google.com/macros/s/AKfycby8fyY_UmULtGUTuMQMVSKxcSekQf1TGQr3ntltz10O2pYLY_mFa8CBYCBME0RUo-xP/exec", {
   method: "POST",
+  mode: "no-cors",                 // ✅ THIS IS THE FIX
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(payload)
 });
