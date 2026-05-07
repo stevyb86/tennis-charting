@@ -313,43 +313,55 @@ function submitPoint(){
 console.log("serveDir:", current.serveDir);
 console.log("serveType:", current.serveType);
 
-  fetch("https://script.google.com/macros/s/AKfycby8fyY_UmULtGUTuMQMVSKxcSekQf1TGQr3ntltz10O2pYLY_mFa8CBYCBME0RUo-xP/exec", {
+
+// ✅ Freeze values BEFORE fetch (prevents reset bugs)
+const serveDir = current.serveDir || "";
+const serveType = current.serveType || "";
+const forced = current.forced || "";
+const rally = current.rally || "";
+const noAd = current.noAd || false;
+
+// ✅ Build payload ONCE, no duplicate keys
+const payload = {
+  matchId: matchId.textContent,
+  isDoubles: isDoubles,
+
+  // ✅ Player / opponent context (RESTORED)
+  player: playerName.value,
+  partner: isDoubles ? partnerName.value : "",
+  opponent: opponentName.value,
+  opponentPartner: isDoubles ? opponentPartnerName.value : "",
+  weather: weather.value,
+
+  // ✅ Serve / point context
+  serverPerson: current.serverPerson || "",
+  serverTeam: current.serverTeam || "",
+  winnerTeam: team,
+
+  serveNum: current.serveNum || "",
+  serveIn: current.serveIn ?? "",
+
+  // ✅ Tracking toggles (FIXED)
+  serveDir: serveDir,
+  serveType: serveType,
+  forced: forced,
+  rally: rally,
+  noAd: noAd,
+
+  // ✅ Point ending
+  shot: current.shot || "Serve",
+  shotType: current.shotType || "",
+  shotResult: (!current.shot && !current.serveIn)
+    ? "Double Fault"
+    : (!current.shot && current.serveIn ? "Service Winner" : "")
+};
+
+fetch("https://script.google.com/macros/s/AKfycby8fyY_UmULtGUTuMQMVSKxcSekQf1TGQr3ntltz10O2pYLY_mFa8CBYCBME0RUo-xP/exec", {
   method: "POST",
-  contentType: "application/json",
-  body: JSON.stringify({
-    matchId: matchId.textContent,
-    isDoubles: isDoubles,
-
-    player: playerName.value,
-    partner: isDoubles ? partnerName.value : "",
-    opponent: opponentName.value,
-    opponentPartner: isDoubles ? opponentPartnerName.value : "",
-    weather: weather.value,
-
-    serverPerson: current.serverPerson || "",
-    serverTeam: current.serverTeam || "",
-    winnerTeam: team,
-
-    serveNum: current.serveNum || "",
-    serveIn: current.serveIn ?? "",
-
-    serveDir: current.serveDir || "",
-    serveType: current.serveType || "",
-    forced: current.forced || "",
-
-    shot: current.shot || "Serve",
-    shotType: current.shotType || "",
-    shotResult: (!current.shot && !current.serveIn)
-      ? "Double Fault"
-      : (!current.shot && current.serveIn ? "Service Winner" : ""),
-
-    serveDir: current.serveDir || "",
-    serveType: current.serveType || "",
-    forced: current.forced || "",
-    rally: current.rally || "",
-    noAd: current.noAd || false
-  })
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(payload)
 });
+
   resetPointSelections();
   updateScore();
 }
