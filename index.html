@@ -220,17 +220,20 @@ function selectSimple(btn,key,val){
 
 /* Validation */
 function validate() {
-  const isServeOnlyPoint =
+  // ✅ Serve-only point (ace, service winner, double fault)
+  const servePoint =
     current.serverPerson &&
     current.serveNum &&
     typeof current.serveIn === "boolean";
 
-  const isRallyPoint =
+  // ✅ Rally point
+  const rallyPoint =
     current.shot &&
     current.shotType &&
     current.winnerTeam;
 
-  submitBtn.disabled = !(isServeOnlyPoint || isRallyPoint);
+  // ✅ Allow EITHER
+  submitBtn.disabled = !(servePoint || rallyPoint);
 }
 
 
