@@ -219,19 +219,18 @@ function selectSimple(btn,key,val){
 }
 
 /* Validation */
-function validate(){
-  const serveComplete =
+function validate() {
+  const isServeOnlyPoint =
     current.serverPerson &&
     current.serveNum &&
-    current.serveDir &&
-    current.serveType;
+    typeof current.serveIn === "boolean";
 
-  const rallyComplete =
+  const isRallyPoint =
     current.shot &&
     current.shotType &&
     current.winnerTeam;
 
-  submitBtn.disabled = !(serveComplete || rallyComplete);
+  submitBtn.disabled = !(isServeOnlyPoint || isRallyPoint);
 }
 
 
