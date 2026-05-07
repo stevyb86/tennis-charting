@@ -309,7 +309,11 @@ function submitPoint(){
     }
     if(isTiebreak) tbPoints++;
   }
-fetch("https://script.google.com/macros/s/AKfycby8fyY_UmULtGUTuMQMVSKxcSekQf1TGQr3ntltz10O2pYLY_mFa8CBYCBME0RUo-xP/exec", {
+
+console.log("serveDir:", current.serveDir);
+console.log("serveType:", current.serveType);
+
+  fetch("https://script.google.com/macros/s/AKfycby8fyY_UmULtGUTuMQMVSKxcSekQf1TGQr3ntltz10O2pYLY_mFa8CBYCBME0RUo-xP/exec", {
   method: "POST",
   contentType: "application/json",
   body: JSON.stringify({
